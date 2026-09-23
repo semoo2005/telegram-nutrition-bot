@@ -232,9 +232,35 @@ def main():
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
+    # تشغيل خادم ويب مصغر في الخلفية للتوافق مع استضافات الويب المجانية (مثل Render Web Service)
+    def run_health_server():
+        import threading
+        from http.server import HTTPServer, BaseHTTPRequestHandler
+
+        class HealthHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(b"Bot is healthy and running!")
+
+            def log_message(self, format, *args):
+                pass  # تجاهل سجلات الوصول للحفاظ على نظافة الـ logs
+
+        port = int(os.getenv("PORT", 8080))
+        try:
+            server = HTTPServer(("0.0.0.0", port), HealthHandler)
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            print(f"🌐 تم تشغيل خادم المراقبة على المنفذ {port}")
+        except Exception as e:
+            print(f"تنبيه خادم المراقبة: {e}")
+
+    run_health_server()
+
     print("🚀 بوت مدرب التغذية الذكي قيد التشغيل الآن على تلجرام...")
     app.run_polling()
 
 
 if __name__ == "__main__":
     main()
+
